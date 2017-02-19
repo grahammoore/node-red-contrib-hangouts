@@ -14,7 +14,15 @@ module.exports = function(RED) {
 		var id = req.query.id;
 		var node = RED.nodes.getNode(id);
 		if (node && node.contacts) {
-			res.end(JSON.stringify(node.conversations));
+			var conversations = node.conversations;
+			var participants = {};
+			for (i = 0; i < node.client.init.conv_states.length; i++) {
+				participants[node.client.init.conv_states[i].conversation_id.id] = node.client.init.conv_states[i].conversation.participant_data;
+			}
+			for (i = 0; i < conversations.length; i++) {
+				conversations[i].participant_data = participants[conversations[i].id]
+			}
+			res.end(JSON.stringify(conversations));
 		} else {
 			res.end("[]");
 		}
