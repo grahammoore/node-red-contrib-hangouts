@@ -20,7 +20,7 @@ module.exports = function(RED) {
 			node.client.init.conv_states.forEach(function(conversation) {
 				participants[conversation.conversation_id.id] = conversation.conversation.participant_data;
 			});
-            conversations.forEach(function(conve``rsation) {
+            conversations.forEach(function(conversation) {
 				conversation.participant_data = participants[conversation.id]
 			});
 			res.end(JSON.stringify(conversations));
@@ -33,6 +33,7 @@ module.exports = function(RED) {
         node.log("Sync conversations");
         node.client.syncrecentconversations();
         node.log("Done");
+		node.conversations = [];
 		node.client.init.conv_states.forEach(function(conversation) {
 			node.conversations.push({
 				id: conversation.conversation.conversation_id.id,
