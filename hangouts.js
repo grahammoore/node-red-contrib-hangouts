@@ -14,19 +14,36 @@ module.exports = function(RED) {
 		var id = req.query.id;
 		var node = RED.nodes.getNode(id);
 		if (node && node.contacts) {
+            updateConversations(node);
 			var conversations = node.conversations;
 			var participants = {};
-			for (i = 0; i < node.client.init.conv_states.length; i++) {
-				participants[node.client.init.conv_states[i].conversation_id.id] = node.client.init.conv_states[i].conversation.participant_data;
-			}
-			for (i = 0; i < conversations.length; i++) {
-				conversations[i].participant_data = participants[conversations[i].id]
-			}
+			node.client.init.conv_states.forEach(function(conversation) {
+				participants[conversation.conversation_id.id] = conversation.conversation.participant_data;
+			});
+            conversations.forEach(function(conve``rsation) {
+				conversation.participant_data = participants[conversation.id]
+			});
 			res.end(JSON.stringify(conversations));
 		} else {
 			res.end("[]");
 		}
 	});
+
+	function updateConversations(node) {
+        node.log("Sync conversations");
+        node.client.syncrecentconversations();
+        node.log("Done");
+		node.client.init.conv_states.forEach(function(conversation) {
+			node.conversations.push({
+				id: conversation.conversation.conversation_id.id,
+				name: conversation.conversation.name,
+				participants: conversation.conversation.participant_data.map(function(participant) {
+					return participant.fallback_name;
+				})
+			});
+		});
+		node.warn(JSON.stringify(node.conversations));
+	}
 
 	function HangoutsConfigNode(n) {
 		RED.nodes.createNode(this,n);
@@ -51,18 +68,18 @@ module.exports = function(RED) {
 		});
 		if(n.debug) node.client.loglevel('debug');
 
-		function updateConversations() {
-			node.client.init.conv_states.forEach(function(conversation) {
-				node.conversations.push({
-					id: conversation.conversation.conversation_id.id,
-					name: conversation.conversation.name,
-					participants: conversation.conversation.participant_data.map(function(participant) {
-						return participant.fallback_name;
-					})
-				});
-			});
-			node.warn(JSON.stringify(node.conversations));
-		}
+		// function updateConversations() {
+		// 	node.client.init.conv_states.forEach(function(conversation) {
+		// 		node.conversations.push({
+		// 			id: conversation.conversation.conversation_id.id,
+		// 			name: conversation.conversation.name,
+		// 			participants: conversation.conversation.participant_data.map(function(participant) {
+		// 				return participant.fallback_name;
+		// 			})
+		// 		});
+		// 	});
+		// 	node.warn(JSON.stringify(node.conversations));
+		// }
 
 		var creds = function() {
 			return {
@@ -96,7 +113,7 @@ module.exports = function(RED) {
 			node.status = {fill:"green",shape:"dot",text:"connected"};
 			node.emit("status", node.status);
 			node.isConnected = true;
-			updateConversations();
+			updateConversations(node);
 		});
 
 		node.client.on('connecting', function() {
